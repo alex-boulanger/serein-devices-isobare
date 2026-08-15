@@ -1,0 +1,8 @@
+.agents/*
+.claude/*
+extensions-sdk-1.0.0-beta.1/
+node_modules/
+build/
+dist/
+*.ablx
+.env
