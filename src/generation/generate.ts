@@ -1,10 +1,10 @@
-import { createCompositionPlan } from "./composition-plan";
-import { renderRoleScenes } from "./render-role";
+import { createCompositionPlan } from "./planning/composition-plan";
+import { createOrchestration } from "./planning/orchestration";
+import { renderLaneScenes } from "./rendering/render-lane";
 import type {
   GeneratedLane,
   GenerationRecipe,
   GenerationResult,
-  MusicalRole,
 } from "./types";
 
 export * from "./types";
@@ -12,20 +12,17 @@ export * from "./types";
 export function generate(recipe: GenerationRecipe): GenerationResult {
   validateLaneConfiguration(recipe);
   const plan = createCompositionPlan(recipe);
-  const roleCounts = new Map<MusicalRole, number>();
-  const lanes: GeneratedLane[] = recipe.lanes
-    .filter((lane) => lane.enabled)
-    .map((lane) => {
-      const roleInstance = roleCounts.get(lane.role) ?? 0;
-      roleCounts.set(lane.role, roleInstance + 1);
-      return {
-        id: lane.id,
-        role: lane.role,
-        roleInstance,
-        octaveOffset: lane.octaveOffset,
-        scenes: renderRoleScenes(recipe, plan, lane, roleInstance),
-      };
-    });
+  const lanes: GeneratedLane[] = createOrchestration(recipe, plan).map(
+    (orchestration) => ({
+      id: orchestration.lane.id,
+      role: orchestration.lane.role,
+      roleInstance: orchestration.roleInstance,
+      octaveOffset: orchestration.lane.octaveOffset,
+      identity: orchestration.identity,
+      harmonicPaths: orchestration.harmonicPaths,
+      scenes: renderLaneScenes(recipe, plan, orchestration),
+    }),
+  );
   const noteCount = lanes.reduce(
     (laneTotal, lane) => laneTotal + lane.scenes.reduce(
       (sceneTotal, scene) => sceneTotal + scene.notes.length,
@@ -45,8 +42,9 @@ export function generate(recipe: GenerationRecipe): GenerationResult {
       laneCount: lanes.length,
     },
     diagnostics: [
-      "Four related Harmonic Paths planned before role rendering",
-      `Orchestrated ${lanes.length} role lanes with ${noteCount} MIDI notes`,
+      "Four related Harmonic Paths planned before matrix orchestration",
+      `Orchestrated ${lanes.length} Role Variants across ${new Set(lanes.map((lane) => lane.role)).size} Role Families`,
+      `Rendered ${noteCount} MIDI notes`,
     ],
   };
 }

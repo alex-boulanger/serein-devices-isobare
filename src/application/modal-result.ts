@@ -55,7 +55,7 @@ function isApplyResult(value: unknown): value is Extract<ModalResult, { kind: "a
 
   const recipe = value.recipe;
   if (
-    recipe.engineVersion !== 3 ||
+    recipe.engineVersion !== 4 ||
     !isIntegerInRange(recipe.seed, 0, 0xffff_ffff) ||
     !isRecord(recipe.parameters) ||
     !Array.isArray(recipe.lanes) ||

@@ -81,7 +81,7 @@ function createFakeContext(tracks: FakeTrack[]) {
 }
 
 const recipe: GenerationRecipe = {
-  engineVersion: 3,
+  engineVersion: 4,
   seed: 42,
   parameters: {
     rootPitchClass: 0,

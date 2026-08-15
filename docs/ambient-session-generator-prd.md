@@ -1,7 +1,7 @@
 # PRD — Ambient Session Generator
 
 **Status:** Initial matrix generation implemented and tested in Live  
-**Next milestone:** Bass Articulation Motifs and global orchestration  
+**Current milestone:** Bass Articulation Motifs and global orchestration implemented; awaiting Live listening
 **Platform:** Ableton Live Extensions SDK  
 **Default duration:** Eight bars of 4/4 (32 quarter-note beats)
 
@@ -157,6 +157,9 @@ The engine penalizes obvious chord-machine behavior:
 - Default register approximately C1–C3.
 - Favors anchor tones but is not forced to play the project root.
 - Structural, sparse movement.
+- Uses a seeded Pedal, Breath, Call, Drift, or Pickup Articulation Motif.
+- Articulation transforms across the Scene Arc independently of Harmonic Events.
+- Same-pitch returns are allowed after meaningful silence; contiguous repeats are merged.
 
 ### Pad
 
@@ -192,12 +195,23 @@ Counts represent meaningful voice mutations or pitch-set changes across one eigh
 
 These ranges are initial tuning targets rather than promises that randomness must always reach the maximum.
 
+### Bass articulation budgets
+
+| Scene | Attacks per eight bars |
+|---|---:|
+| Foundation | 1–2 |
+| Development | 2–4 |
+| Tension | 2–5 |
+| Release | 1–3 |
+
+Motion selects within these ranges. Global orchestration may contract activity toward the minimum but never creates an empty Bass clip.
+
 ## 9. Sparse but never silent
 
 Every generated clip must:
 
 - Contain at least one note.
-- Establish audible material at beat zero.
+- Establish audible material at beat zero for Bass, Pad, Drone, and Arp Source.
 - Permit internal rests and dropped voices.
 - Remain coherent when heard without the other roles.
 - Return compatibly toward its Transition Anchor before looping.
@@ -205,6 +219,8 @@ Every generated clip must:
 The generator does not create intentionally empty clips. Users create empty Session rows or mute tracks when they want silence in a performance.
 
 Minimal composition is preferred over filling available space.
+
+Future Melody and Arp Line clips may enter within the first four beats. This deliberate entrance delay does not make them silent Role Parts.
 
 ## 10. Time model
 
@@ -216,7 +232,7 @@ Events within the cycle remain asynchronous and role-specific. Sharing a Scene b
 
 ## 11. Determinism and variation foundation
 
-Identical engine version, seed, scale, parameters, and lane configuration must produce identical MIDI.
+Identical engine version, seed, scale, parameters, and lane configuration must produce identical authored MIDI. Engine version 4 covers Articulation Motifs and matrix-level orchestration.
 
 Seeds are derived hierarchically:
 
@@ -300,8 +316,35 @@ The result should retain its recipe, generated notes, aggregate metrics, and dia
 - Intentionally empty clips.
 - Conventional chord-progression generation.
 
-## 16. Future matrix expansion
+## 16. Global orchestration
 
-Once the one-lane generator is musically convincing, the adapter may render one to eight Role Lanes from the same Composition Plan. The modal will then support lane inclusion, ordering, duplicate roles, complementary orchestration, and octave offsets for a Prepared Template.
+Orchestration operates on Role Families rather than raw lane count:
 
-Matrix expansion must preserve the same core contracts; it must not become a loop that independently invokes the one-lane generator for every track.
+- Normal density assumes one active Role Variant per Role Family.
+- More Role Families reduce per-family density; fewer families do not force extra notes. Density is a ceiling, not a target.
+- Adding alternative Role Variants does not weaken each independently performable variant.
+- Each Role Variant receives a stable Orchestral Identity across all Scenes: register, stability, harmonic rotation, and—for Bass—Articulation Motif family.
+- Sibling variants use related Harmonic Paths that preserve at least three common voicing tones while changing one voice.
+- Automatic register allocation precedes the artist's octave correction.
+
+## 17. Listening gate
+
+Before implementing Melody or Arp Line, evaluate several seeds in Live for:
+
+- Full-matrix Scene recognizability.
+- Bass rhythmic diversity and Scene-related motif transformations.
+- Density behavior as Role Families are added.
+- Independent usefulness and occasional compatibility of sibling Role Variants.
+- Release as musical exhalation rather than weak Foundation.
+
+## 18. Later roles
+
+### Melody
+
+Melody is a monophonic foreground role derived from one whole-phrase Melodic Motif. Pluck and Flow are explicit per-lane MIDI phrasing styles. The Scene Arc transforms contour, ordering, register pressure, color-tone exposure, phrase placement, and recall rather than only note count.
+
+### Arp Line
+
+Arp Line authors individual notes, rests, gates, accents, octave displacement, and optional events. It is distinct from Arp Source, which delegates articulation to Ableton's Arpeggiator. Its initial visible control is Slow, Medium, or Fast pace; contour remains a seeded Orchestral Identity.
+
+Melody and Arp Line share a Scene-specific Foreground Allocation so they do not compete continuously. Structural notes remain guaranteed while ornaments may use Live note probability. Exact event and probability ranges remain gated on Live listening and an SDK note-field round-trip probe.

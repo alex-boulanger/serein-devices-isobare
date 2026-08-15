@@ -30,7 +30,7 @@
   let error = $state("");
 
   const recipe = $derived<GenerationRecipe>({
-    engineVersion: 3,
+    engineVersion: 4,
     seed,
     parameters: {
       ...input.recipe.parameters,
@@ -54,6 +54,10 @@
   function octaveLabel(offset: number): string {
     if (offset === 0) return "As generated";
     return `${offset > 0 ? "+" : ""}${offset} octave${Math.abs(offset) === 1 ? "" : "s"}`;
+  }
+
+  function identityLabel(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   function cancel(): void {
@@ -159,7 +163,10 @@
       {#if preview}
         {#each preview.lanes as lane}
           <div class="matrix-row">
-            <strong>{ROLE_NAMES[lane.role]}{lane.roleInstance > 0 ? ` ${lane.roleInstance + 1}` : ""}</strong>
+            <strong>
+              {ROLE_NAMES[lane.role]}{lane.roleInstance > 0 ? ` ${lane.roleInstance + 1}` : ""}
+              · {identityLabel(lane.identity.articulationFamily ?? lane.identity.name)}
+            </strong>
             {#each lane.scenes as scene}<span>{scene.metrics.noteCount}</span>{/each}
           </div>
         {/each}

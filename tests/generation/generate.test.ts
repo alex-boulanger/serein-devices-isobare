@@ -8,11 +8,10 @@ import {
   type MusicalRole,
   type SceneKind,
 } from "../../src/generation/generate";
-import { measureTension } from "../../src/generation/composition-plan";
 
 function recipe(role: MusicalRole = "pad", seed = 42): GenerationRecipe {
   return {
-    engineVersion: 3,
+    engineVersion: 4,
     seed,
     parameters: {
       rootPitchClass: 2,
@@ -160,7 +159,7 @@ describe("generate", () => {
       );
 
       expect(foundation![0]).toBe(2);
-      expect(Math.max(...foundation!)).toBe(3);
+      expect(Math.max(...foundation!)).toBe(role === "pad" ? 3 : 2);
       expect(foundation![31]).toBe(2);
 
       expect(development![0]).toBe(3);
@@ -171,7 +170,7 @@ describe("generate", () => {
       expect(Math.min(...tension!)).toBeGreaterThanOrEqual(4);
       expect(Math.max(...tension!)).toBeLessThanOrEqual(role === "pad" ? 4 : 5);
 
-      expect(release![0]).toBe(3);
+      expect(release![0]).toBe(2);
       expect(release![31]).toBe(2);
 
       const soundingDurations = scenes.map((scene) =>
@@ -232,6 +231,7 @@ describe("generate", () => {
     );
     expect(shiftedPitches).toEqual(originalPitches.map((pitch) => pitch + 12));
   });
+
 });
 
 function summarizeMacro(
@@ -246,10 +246,6 @@ function summarizeMacro(
     });
     const scenes = result.lanes[0]!.scenes;
     const sceneCount = scenes.length;
-    const eventCount = result.plan.paths.reduce(
-      (total, path) => total + path.events.length,
-      0,
-    );
     return {
       mutations: scenes.reduce(
         (total, scene) => total + scene.metrics.mutationCount,
@@ -263,14 +259,10 @@ function summarizeMacro(
         (total, scene) => total + scene.metrics.averageSpacing,
         0,
       ) / sceneCount,
-      tension: result.plan.paths.reduce(
-        (total, path) =>
-          total + path.events.reduce(
-            (pathTotal, event) => pathTotal + measureTension(event.pitches),
-            0,
-          ),
+      tension: scenes.reduce(
+        (total, scene) => total + scene.metrics.averageTension,
         0,
-      ) / eventCount,
+      ) / sceneCount,
     };
   });
 

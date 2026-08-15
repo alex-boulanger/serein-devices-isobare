@@ -1,4 +1,4 @@
-import { createRandom, deriveSeed, type RandomSource } from "./random";
+import { createRandom, deriveSeed, type RandomSource } from "../random";
 import {
   SCENE_KINDS,
   type CompositionPlan,
@@ -7,7 +7,7 @@ import {
   type HarmonicPath,
   type PitchHierarchy,
   type SceneKind,
-} from "./types";
+} from "../types";
 
 export const CLIP_LENGTH_BEATS = 32;
 const BEAM_WIDTH = 14;

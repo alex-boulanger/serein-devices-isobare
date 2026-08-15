@@ -9,7 +9,7 @@ const validApply = {
   kind: "apply",
   overwriteOccupied: false,
   recipe: {
-    engineVersion: 3,
+    engineVersion: 4,
     seed: 42,
     parameters: {
       rootPitchClass: 2,

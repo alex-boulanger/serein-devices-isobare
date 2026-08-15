@@ -70,7 +70,7 @@ function getDefaultRecipe(
     : DEFAULT_SCALE;
 
   return {
-    engineVersion: 3,
+    engineVersion: 4,
     seed: 42,
     parameters: {
       rootPitchClass: song.scaleMode ? song.rootNote : 0,

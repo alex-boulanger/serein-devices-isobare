@@ -7,7 +7,7 @@ import {
 import type { GenerationRecipe, GenerationResult } from "../../src/generation/generate";
 
 const defaultRecipe: GenerationRecipe = {
-  engineVersion: 3,
+  engineVersion: 4,
   seed: 42,
   parameters: {
     rootPitchClass: 0,

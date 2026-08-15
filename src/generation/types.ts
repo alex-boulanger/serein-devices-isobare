@@ -24,6 +24,15 @@ export const ROLE_NAMES: Readonly<Record<MusicalRole, string>> = {
   "arp-source": "Arp Source",
 };
 
+export const BASS_ARTICULATION_FAMILIES = [
+  "pedal",
+  "breath",
+  "call",
+  "drift",
+  "pickup",
+] as const;
+export type BassArticulationFamily = (typeof BASS_ARTICULATION_FAMILIES)[number];
+
 export interface ScaleDefinition {
   readonly name: string;
   readonly intervals: readonly number[];
@@ -45,7 +54,7 @@ export interface RoleLaneRecipe {
 }
 
 export interface GenerationRecipe {
-  readonly engineVersion: 3;
+  readonly engineVersion: 4;
   readonly seed: number;
   readonly parameters: GenerationParameters;
   readonly lanes: readonly RoleLaneRecipe[];
@@ -87,6 +96,7 @@ export interface SceneMetrics {
   readonly densityChangeCount: number;
   readonly averageMovement: number;
   readonly averageSpacing: number;
+  readonly averageTension: number;
 }
 
 export interface GeneratedScene {
@@ -109,7 +119,17 @@ export interface GeneratedLane {
   readonly role: MusicalRole;
   readonly roleInstance: number;
   readonly octaveOffset: number;
+  readonly identity: OrchestralIdentity;
+  readonly harmonicPaths: readonly HarmonicPath[];
   readonly scenes: readonly GeneratedScene[];
+}
+
+export interface OrchestralIdentity {
+  readonly name: string;
+  readonly registerOffset: number;
+  readonly harmonicRotation: number;
+  readonly stability: number;
+  readonly articulationFamily?: BassArticulationFamily;
 }
 
 export interface GenerationResult {
