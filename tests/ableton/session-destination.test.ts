@@ -81,7 +81,7 @@ function createFakeContext(tracks: FakeTrack[]) {
 }
 
 const recipe: GenerationRecipe = {
-  engineVersion: 4,
+  engineVersion: 6,
   seed: 42,
   parameters: {
     rootPitchClass: 0,
@@ -91,7 +91,7 @@ const recipe: GenerationRecipe = {
     space: 0.65,
   },
   lanes: [
-    { id: "track-0", role: "bass", octaveOffset: 0, enabled: true },
+    { id: "track-0", role: "bass", style: "articulated", octaveOffset: 0, enabled: true },
     { id: "track-1", role: "pad", octaveOffset: 0, enabled: true },
   ],
 };
@@ -131,10 +131,10 @@ describe("session destination adapter", () => {
     expect(fake.tracks.every((track) => track.clipSlots.length === 4)).toBe(true);
     expect(fake.appendedSceneNames).toEqual(["Tension", "Release"]);
     expect(fake.tracks[0]!.clipSlots.map((slot) => slot.clip?.name)).toEqual([
-      "Foundation — Bass", "Development — Bass", "Tension — Bass", "Release — Bass",
+      "Bass — Foundation", "Bass — Development", "Bass — Tension", "Bass — Release",
     ]);
     expect(fake.tracks[1]!.clipSlots.map((slot) => slot.clip?.name)).toEqual([
-      "Foundation — Pad", "Development — Pad", "Tension — Pad", "Release — Pad",
+      "Pad — Foundation", "Pad — Development", "Pad — Tension", "Pad — Release",
     ]);
     expect(fake.tracks.flatMap((track) => track.clipSlots)
       .every((slot) => (slot.clip?.notes.length ?? 0) > 0)).toBe(true);

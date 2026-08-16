@@ -6,6 +6,7 @@ import type {
   GenerationRecipe,
   GenerationResult,
 } from "./types";
+import { ROLE_STYLES, type RoleStyle } from "./types";
 
 export * from "./types";
 
@@ -18,6 +19,9 @@ export function generate(recipe: GenerationRecipe): GenerationResult {
       role: orchestration.lane.role,
       roleInstance: orchestration.roleInstance,
       octaveOffset: orchestration.lane.octaveOffset,
+      ...(orchestration.lane.style === undefined
+        ? {}
+        : { style: orchestration.lane.style }),
       identity: orchestration.identity,
       harmonicPaths: orchestration.harmonicPaths,
       scenes: renderLaneScenes(recipe, plan, orchestration),
@@ -58,5 +62,13 @@ function validateLaneConfiguration(recipe: GenerationRecipe): void {
   }
   if (!recipe.lanes.some((lane) => lane.enabled)) {
     throw new Error("At least one role lane must be enabled.");
+  }
+  if (recipe.lanes.some((lane) => {
+    const styles = ROLE_STYLES[lane.role];
+    return styles === undefined
+      ? lane.style !== undefined
+      : lane.style === undefined || !styles.includes(lane.style as RoleStyle);
+  })) {
+    throw new Error("Every styled Role lane requires a supported Role Style.");
   }
 }

@@ -1,0 +1,25 @@
+Serein Devices — Isobare
+Copyright 2026 Alex Boulanger
+
+Licensed under the Apache License, Version 2.0. See LICENSE for the full terms.
+
+--------------------------------------------------------------------------------
+
+Ableton Extensions SDK
+
+This repository does not contain the Ableton Extensions SDK. The SDK archives
+are gitignored and are never published, because the Ableton Extensions SDK
+License forbids distributing the SDK, or parts of it, outside of an application
+built with it. Obtain the SDK from Ableton to build this project.
+
+Packaged builds (`.ablx`) do bundle SDK code inside the application, which that
+licence permits. Those bundled portions remain the property of Ableton AG and
+are licensed by Ableton, not under the Apache License, Version 2.0. The Apache
+License in this repository covers only the source authored here.
+
+"Ableton" and "Live" are trademarks of Ableton AG. Serein Devices and Isobare
+are not affiliated with, endorsed by, or sponsored by Ableton AG. Use of the
+Ableton Extensions SDK is subject to Ableton's Branding and Trademark
+Guidelines:
+
+    https://www.ableton.com/en/legal/branding-trademark-guidelines/

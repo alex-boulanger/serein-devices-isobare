@@ -14,7 +14,40 @@ export const SCENE_NAMES: Readonly<Record<SceneKind, string>> = {
   release: "Release",
 };
 
-export const MUSICAL_ROLES = ["bass", "pad", "drone", "arp-source"] as const;
+export const SCENE_NUMERALS: Readonly<Record<SceneKind, string>> = {
+  foundation: "I",
+  development: "II",
+  tension: "III",
+  release: "IV",
+};
+
+/**
+ * How the Scene Arc is spelled in generated clip names. Descriptive names read
+ * clearly on their own; numerals stay compact once a Session View is full of
+ * lanes and the arc is already familiar.
+ */
+export const SCENE_LABEL_STYLES = ["name", "numeral"] as const;
+export type SceneLabelStyle = (typeof SCENE_LABEL_STYLES)[number];
+
+export const SCENE_LABEL_STYLE_NAMES: Readonly<Record<SceneLabelStyle, string>> = {
+  name: "Names",
+  numeral: "I–IV",
+};
+
+export function sceneLabel(
+  scene: SceneKind,
+  style: SceneLabelStyle = "name",
+): string {
+  return style === "numeral" ? SCENE_NUMERALS[scene] : SCENE_NAMES[scene];
+}
+
+export const MUSICAL_ROLES = [
+  "bass",
+  "pad",
+  "drone",
+  "arp-source",
+  "lead",
+] as const;
 export type MusicalRole = (typeof MUSICAL_ROLES)[number];
 
 export const ROLE_NAMES: Readonly<Record<MusicalRole, string>> = {
@@ -22,6 +55,29 @@ export const ROLE_NAMES: Readonly<Record<MusicalRole, string>> = {
   pad: "Pad",
   drone: "Drone",
   "arp-source": "Arp Source",
+  lead: "Lead",
+};
+
+export const LEAD_STYLES = ["pluck", "flow"] as const;
+export type LeadStyle = (typeof LEAD_STYLES)[number];
+
+export const BASS_STYLES = ["articulated", "sustained"] as const;
+export type BassStyle = (typeof BASS_STYLES)[number];
+
+export type RoleStyle = BassStyle | LeadStyle;
+
+export const ROLE_STYLES: Readonly<
+  Partial<Record<MusicalRole, readonly RoleStyle[]>>
+> = {
+  bass: BASS_STYLES,
+  lead: LEAD_STYLES,
+};
+
+export const ROLE_STYLE_NAMES: Readonly<Record<RoleStyle, string>> = {
+  articulated: "Articulated",
+  sustained: "Sustained",
+  pluck: "Pluck",
+  flow: "Flow",
 };
 
 export const BASS_ARTICULATION_FAMILIES = [
@@ -44,6 +100,14 @@ export interface GenerationParameters {
   readonly motion: number;
   readonly tension: number;
   readonly space: number;
+  /**
+   * How far material may depart from its own plan: octave displacement, how
+   * deeply ornaments are thinned between passes, and whether the Melodic Motif
+   * is developed rather than restated. The other three macros shape what the
+   * plan contains; this one decides how faithfully it is followed. Absent means
+   * none, so a recipe without it renders exactly as before.
+   */
+  readonly drift?: number;
 }
 
 export interface RoleLaneRecipe {
@@ -51,13 +115,16 @@ export interface RoleLaneRecipe {
   readonly role: MusicalRole;
   readonly octaveOffset: number;
   readonly enabled: boolean;
+  readonly style?: RoleStyle;
 }
 
 export interface GenerationRecipe {
-  readonly engineVersion: 4;
+  readonly engineVersion: 6;
   readonly seed: number;
   readonly parameters: GenerationParameters;
   readonly lanes: readonly RoleLaneRecipe[];
+  /** Naming only; it never changes a single note. Defaults to "name". */
+  readonly sceneLabelStyle?: SceneLabelStyle;
 }
 
 export interface GeneratedNote {
@@ -65,6 +132,12 @@ export interface GeneratedNote {
   readonly startTime: number;
   readonly duration: number;
   readonly velocity: number;
+  /**
+   * Chance that Live sounds this note on a given pass, per ADR 0009. Absent
+   * means guaranteed: structural material and Transition Anchors always sound,
+   * and only ornament or connective notes carry a value below 1.
+   */
+  readonly probability?: number;
 }
 
 export interface HarmonicEvent {
@@ -88,6 +161,12 @@ export interface CompositionPlan {
   readonly pitchHierarchy: PitchHierarchy;
   readonly transitionAnchors: readonly number[];
   readonly paths: readonly HarmonicPath[];
+  readonly melodicMotif: MelodicMotif;
+}
+
+export interface MelodicMotif {
+  readonly scaleDegrees: readonly number[];
+  readonly rhythm: readonly number[];
 }
 
 export interface SceneMetrics {
@@ -119,6 +198,7 @@ export interface GeneratedLane {
   readonly role: MusicalRole;
   readonly roleInstance: number;
   readonly octaveOffset: number;
+  readonly style?: RoleStyle;
   readonly identity: OrchestralIdentity;
   readonly harmonicPaths: readonly HarmonicPath[];
   readonly scenes: readonly GeneratedScene[];

@@ -9,7 +9,7 @@ const validApply = {
   kind: "apply",
   overwriteOccupied: false,
   recipe: {
-    engineVersion: 4,
+    engineVersion: 6,
     seed: 42,
     parameters: {
       rootPitchClass: 2,
@@ -71,5 +71,52 @@ describe("parseModalResult", () => {
     const { overwriteOccupied: _removed, ...withoutOverwrite } = validApply;
     expect(() => parseModalResult(JSON.stringify(withoutOverwrite)))
       .toThrow("Invalid modal result");
+  });
+
+  it("requires a supported Role Style exactly where the role defines one", () => {
+    const leadLane = {
+      ...validApply.recipe.lanes[0]!,
+      role: "lead" as const,
+      style: "flow" as const,
+    };
+    const leadApply: ModalResult = {
+      ...validApply,
+      recipe: { ...validApply.recipe, lanes: [leadLane] },
+    };
+    expect(parseModalResult(JSON.stringify({
+      ...validApply,
+      recipe: { ...validApply.recipe, lanes: [leadLane] },
+    }))).toEqual(leadApply);
+
+    for (const style of [undefined, "legato"]) {
+      expect(() => parseModalResult(JSON.stringify({
+        ...validApply,
+        recipe: {
+          ...validApply.recipe,
+          lanes: [{ ...validApply.recipe.lanes[0], role: "lead", style }],
+        },
+      }))).toThrow("Invalid modal result");
+    }
+
+    const bassLane = {
+      ...validApply.recipe.lanes[0]!,
+      role: "bass" as const,
+      style: "sustained" as const,
+    };
+    expect(parseModalResult(JSON.stringify({
+      ...validApply,
+      recipe: { ...validApply.recipe, lanes: [bassLane] },
+    }))).toEqual({
+      ...validApply,
+      recipe: { ...validApply.recipe, lanes: [bassLane] },
+    });
+
+    expect(() => parseModalResult(JSON.stringify({
+      ...validApply,
+      recipe: {
+        ...validApply.recipe,
+        lanes: [{ ...validApply.recipe.lanes[0], role: "pad", style: "pluck" }],
+      },
+    }))).toThrow("Invalid modal result");
   });
 });

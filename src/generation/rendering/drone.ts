@@ -18,9 +18,10 @@ export function renderDrone(context: RoleRenderContext): RenderedRole {
     ] ?? plan.pitchHierarchy.root;
     return pitchForClassNear(pitchClass, index === 0 ? 38 : 43, 28, 60);
   });
-  return renderMonophonicSegments(
-    selected.map((event) => event.beat),
-    pitches,
-    "drone",
-  );
+  // A Drone that does not own the downbeat enters behind whichever lane does.
+  const beats = selected.map((event) => event.beat);
+  const nextBeat = beats[1] ?? 32;
+  beats[0] = Math.min(orchestration.downbeatOffset, nextBeat - 1);
+
+  return renderMonophonicSegments(beats, pitches, "drone", path.scene);
 }

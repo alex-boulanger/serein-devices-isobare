@@ -1,13 +1,13 @@
-# PRD — Ambient Session Generator
+# PRD — Serein Devices - Isobare
 
 **Status:** Initial matrix generation implemented and tested in Live  
-**Current milestone:** Bass Articulation Motifs and global orchestration implemented; awaiting Live listening
+**Current milestone:** Role Styles and Lead implemented; awaiting Live listening and tuning
 **Platform:** Ableton Live Extensions SDK  
 **Default duration:** Eight bars of 4/4 (32 quarter-note beats)
 
 ## 1. Product direction
 
-Ambient Session Generator creates coherent, slowly evolving MIDI material for performing ambient music in Ableton Live's Session View. Its long-term output is an Ambient Session: a matrix of related Scene rows and Musical Role columns derived from one Composition Plan.
+Serein Devices - Isobare creates coherent, slowly evolving MIDI material for performing ambient music in Ableton Live's Session View. Its long-term output is an Ambient Session: a matrix of related Scene rows and Musical Role columns derived from one Composition Plan.
 
 The extension is intended for a Prepared Template. Users own the tracks, instruments, effects, and performance mix. The extension composes MIDI; it does not build or manage the sound-design environment.
 
@@ -23,7 +23,7 @@ The complete product generates a matrix with:
 
 - Four related Scenes: Foundation, Development, Tension, and Release.
 - One to eight Role Lanes.
-- Musical Roles: Bass, Pad, Drone, Arp Source, Melody, and Arp Line.
+- Musical Roles: Bass, Pad, Drone, Arp Source, Lead, and Arp Line.
 - Repeated roles treated as alternative Role Variants with stable Orchestral Identities.
 - Mix Resilience when roles are muted during performance.
 
@@ -31,14 +31,14 @@ The complete product generates a matrix with:
 
 The selected clip slot is the upper-left anchor. Up to eight consecutive MIDI tracks form the Role Lane block; the first non-MIDI track ends it. The selected Scene row and following three rows receive Foundation, Development, Tension, and Release. Missing rows are appended; existing scenes are not renamed.
 
-The user explicitly includes or excludes each discovered lane, assigns its Musical Role, and may offset its register by up to two octaves. Live track order is preserved. One Composition Plan coordinates the complete matrix. The next milestone deepens this into explicit Scene Profiles, Role Families, sibling Harmonic Paths, global density ceilings, and stable Orchestral Identities.
+The user explicitly includes or excludes each discovered lane, assigns its Musical Role and available Role Style, and may offset its register by up to two octaves. Live track order is preserved. One Composition Plan coordinates the complete matrix through Scene Profiles, Role Families, sibling Harmonic Paths, global density ceilings, and stable Orchestral Identities.
 
 ## 3. User workflow
 
-1. The user right-clicks one Session View clip slot and chooses **Generate ambient matrix…**.
+1. The user right-clicks one Session View clip slot and chooses **Generate…**.
 2. The extension reads Live's project scale. If Scale Mode is disabled, it uses C major.
-3. The modal lists the consecutive MIDI tracks and lets the user include each one, assign Bass, Pad, Drone, or Arp Source, and choose an octave offset.
-4. The modal exposes Motion, Tension, Space, and Seed. Scene duration is fixed at 32 beats for this milestone.
+3. The modal lists the consecutive MIDI tracks and lets the user include each one, assign a Musical Role and available Role Style, and choose an octave offset.
+4. The modal exposes Motion, Tension, Space, and Seed. Seed is randomized whenever the modal opens and may be randomized again explicitly. Scene duration is fixed at 32 beats for this milestone.
 5. The extension preflights all enabled lanes across the four target Scene rows.
 6. Occupied destinations are preserved unless the user explicitly enables **Overwrite occupied clips**. The modal reports the occupied count.
 7. Apply writes the complete matrix in one Live undo transaction.
@@ -156,9 +156,11 @@ The engine penalizes obvious chord-machine behavior:
 - Monophonic.
 - Default register approximately C1–C3.
 - Favors anchor tones but is not forced to play the project root.
-- Structural, sparse movement.
-- Uses a seeded Pedal, Breath, Call, Drift, or Pickup Articulation Motif.
+- Sustained Style provides continuous low harmonic support through the Scene Cycle with sparse pitch movement.
+- Articulated Style uses a seeded Pedal, Breath, Call, Drift, or Pickup Articulation Motif with deliberate rests.
 - Articulation transforms across the Scene Arc independently of Harmonic Events.
+- Foundation and Release may leave part of the Scene Cycle open; Development and Tension distribute activity through the final bars.
+- May use a downbeat anchor, delayed entrance, middle call, bookends, or tail pickup.
 - Same-pitch returns are allowed after meaningful silence; contiguous repeats are merged.
 
 ### Pad
@@ -186,23 +188,23 @@ The engine penalizes obvious chord-machine behavior:
 
 Counts represent meaningful voice mutations or pitch-set changes across one eight-bar Scene Cycle, not emitted arpeggiator notes.
 
-| Role | Foundation | Development | Tension | Release |
-|---|---:|---:|---:|---:|
-| Bass | 0–1 | 1–2 | 1–2 | 0–1 |
-| Pad | 0–1 | 1–2 | 2–4 | 0–1 |
-| Drone | 0 | 0–1 | 1 | 0 |
-| Arp Source | 0–1 | 1–2 | 1–3 | 0–1 |
+| Role       | Foundation | Development | Tension | Release |
+| ---------- | ---------: | ----------: | ------: | ------: |
+| Bass       |        0–1 |         1–2 |     1–2 |     0–1 |
+| Pad        |        0–1 |         1–2 |     2–4 |     0–1 |
+| Drone      |          0 |         0–1 |       1 |       0 |
+| Arp Source |        0–1 |         1–2 |     1–3 |     0–1 |
 
 These ranges are initial tuning targets rather than promises that randomness must always reach the maximum.
 
-### Bass articulation budgets
+### Articulated Bass budgets
 
-| Scene | Attacks per eight bars |
-|---|---:|
-| Foundation | 1–2 |
-| Development | 2–4 |
-| Tension | 2–5 |
-| Release | 1–3 |
+| Scene       | Attacks per eight bars |
+| ----------- | ---------------------: |
+| Foundation  |                    1–2 |
+| Development |                    3–6 |
+| Tension     |                    4–7 |
+| Release     |                    1–3 |
 
 Motion selects within these ranges. Global orchestration may contract activity toward the minimum but never creates an empty Bass clip.
 
@@ -211,7 +213,8 @@ Motion selects within these ranges. Global orchestration may contract activity t
 Every generated clip must:
 
 - Contain at least one note.
-- Establish audible material at beat zero for Bass, Pad, Drone, and Arp Source.
+- Establish audible material at beat zero for Pad, Drone, and Arp Source.
+- Allow Bass and foreground roles to use role-specific entrance rests.
 - Permit internal rests and dropped voices.
 - Remain coherent when heard without the other roles.
 - Return compatibly toward its Transition Anchor before looping.
@@ -220,7 +223,7 @@ The generator does not create intentionally empty clips. Users create empty Sess
 
 Minimal composition is preferred over filling available space.
 
-Future Melody and Arp Line clips may enter within the first four beats. This deliberate entrance delay does not make them silent Role Parts.
+Lead and future Arp Line clips may enter within the first four beats. Articulated Bass entrances follow their seeded Articulation Motif rather than a fixed maximum delay, while Sustained Bass begins at launch. A deliberate entrance delay does not make a Role Part silent.
 
 ## 10. Time model
 
@@ -232,7 +235,7 @@ Events within the cycle remain asynchronous and role-specific. Sharing a Scene b
 
 ## 11. Determinism and variation foundation
 
-Identical engine version, seed, scale, parameters, and lane configuration must produce identical authored MIDI. Engine version 4 covers Articulation Motifs and matrix-level orchestration.
+Identical engine version, seed, scale, parameters, and lane configuration must produce identical authored MIDI. Engine version 6 covers Role Styles, Melodic Motifs, Articulation Motifs, and matrix-level orchestration.
 
 Seeds are derived hierarchically:
 
@@ -251,11 +254,11 @@ SDK handles must never be persisted.
 
 The visible controls are:
 
-- Per-track inclusion, Musical Role, and octave offset.
+- Per-track inclusion, Musical Role, available Role Style, and octave offset.
 - Motion: still to evolving.
 - Tension: consonant to abrasive.
 - Space: compact to open.
-- Seed.
+- Seed, randomized on modal open with an explicit Randomize action.
 - Overwrite occupied clips, default off.
 
 Stability, exploration temperature, density allocation, voice count, Pitch Hierarchy weights, and Scene-specific profiles remain internal until listening tests demonstrate useful and understandable user-facing behavior.
@@ -291,7 +294,7 @@ The result should retain its recipe, generated notes, aggregate metrics, and dia
 5. Apply is grouped into one Live undo step.
 6. Live's project scale is respected; disabled Scale Mode falls back to C major.
 7. Every note belongs to the selected scale.
-8. Every clip is 32 beats, nonempty, and audible from beat zero.
+8. Every clip is 32 beats and nonempty; entrances follow the Musical Role contract.
 9. Foundation, Development, Tension, and Release are recognizably related transformations.
 10. Pad changes normally move one voice while preserving common tones.
 11. Mutation counts remain within the role and Scene tuning budgets.
@@ -310,7 +313,7 @@ The result should retain its recipe, generated notes, aggregate metrics, and dia
 - Crossing a non-MIDI track when discovering the prepared template block.
 - Persisting track-to-role mappings between invocations.
 - Inferring playable range from track or device names.
-- Generating lead melodies, drums, audio, or performed arpeggio rhythms.
+- Generating drums, audio, or performed Arp Line rhythms.
 - Meter-aware bar conversion.
 - Persistent template mappings.
 - Intentionally empty clips.
@@ -329,22 +332,23 @@ Orchestration operates on Role Families rather than raw lane count:
 
 ## 17. Listening gate
 
-Before implementing Melody or Arp Line, evaluate several seeds in Live for:
+Before implementing Arp Line, evaluate several seeds in Live for:
 
 - Full-matrix Scene recognizability.
 - Bass rhythmic diversity and Scene-related motif transformations.
 - Density behavior as Role Families are added.
 - Independent usefulness and occasional compatibility of sibling Role Variants.
 - Release as musical exhalation rather than weak Foundation.
+- Lead motif recognizability, delayed entrances, register pressure, and the contrast between Pluck and Flow.
 
-## 18. Later roles
+## 18. Foreground roles
 
-### Melody
+### Lead
 
-Melody is a monophonic foreground role derived from one whole-phrase Melodic Motif. Pluck and Flow are explicit per-lane MIDI phrasing styles. The Scene Arc transforms contour, ordering, register pressure, color-tone exposure, phrase placement, and recall rather than only note count.
+Lead is a monophonic foreground role derived from one whole-phrase Melodic Motif. Pluck and Flow are explicit per-lane Role Styles over the same score. The Scene Arc transforms contour, ordering, register pressure, color-tone exposure, phrase placement, and recall rather than only note count. Lead is part of generation engine version 6; note probability remains deferred.
 
 ### Arp Line
 
 Arp Line authors individual notes, rests, gates, accents, octave displacement, and optional events. It is distinct from Arp Source, which delegates articulation to Ableton's Arpeggiator. Its initial visible control is Slow, Medium, or Fast pace; contour remains a seeded Orchestral Identity.
 
-Melody and Arp Line share a Scene-specific Foreground Allocation so they do not compete continuously. Structural notes remain guaranteed while ornaments may use Live note probability. Exact event and probability ranges remain gated on Live listening and an SDK note-field round-trip probe.
+Lead and Arp Line share a Scene-specific Foreground Allocation so they do not compete continuously. Structural notes remain guaranteed while ornaments may use Live note probability. Exact event and probability ranges remain gated on Live listening and an SDK note-field round-trip probe.

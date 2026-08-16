@@ -1,0 +1,165 @@
+/*
+ * Isobare's own palette — deliberately not Live's chrome.
+ *
+ * A cool near-black ground (hue ~198, barely saturated) under a paper-white
+ * ink, after the name: fine evening rain, lines of equal pressure. Warmth is
+ * never decoration — amber marks an overwrite, coral marks a refusal, and
+ * nothing else in the interface carries a hue.
+ *
+ * Depth runs sunken → bg → panel → control, so the plot wells are the deepest
+ * surface and the notes drawn on them are the brightest thing on screen.
+ * One ink, two type sizes, hairline rules; hierarchy comes from weight,
+ * tracking and opacity. Every pairing below clears WCAG AA for its role.
+ */
+:root {
+  --sunken: #0a0d0f; /* plot wells — deepest surface        */
+  --bg: #0f1315; /* modal ground                        */
+  --panel: #151a1d; /* lane control column                 */
+  --control: #262f34; /* inputs, selects, buttons            */
+  --line-soft: #20282c; /* bar and octave rules inside a plot  */
+  --line: #3a474d; /* structural hairlines                */
+
+  --ink: #e9edec; /* text, and every generated note      */
+  --ink-dim: #93a0a4; /* meta text                           */
+
+  --warn: #e0a75e; /* occupied clips, overwrite consent   */
+  --error: #ec8375; /* validation refusal                  */
+
+  /*
+   * One tinted ink per Musical Role, so lanes stay separable where they overlay
+   * in the stacked Scene view. Spaced 51-64 degrees apart for separability and
+   * kept clear of the amber and coral hues, which stay reserved for meaning.
+   * Desaturated on purpose: tinted inks on a cool ground, not a rainbow.
+   */
+  --role-bass: #5fa3db;
+  --role-pad: #a288de;
+  --role-drone: #57bc92;
+  --role-arp-source: #8cbf77;
+  --role-lead: #db8cbe;
+
+  --type: 12px;
+  --type-small: 10px;
+  --track: 0.08em;
+
+  --pad: 16px;
+  --control-column: 236px;
+  --row-min: 46px;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 760px;
+  height: 640px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--type);
+  line-height: 1.35;
+}
+
+/* The chrome is lowercase; user-authored track names are left as written. */
+#app {
+  text-transform: lowercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+  font-size: var(--type);
+  font-weight: 500;
+}
+
+/* Form controls do not inherit casing from #app on their own. */
+button,
+select,
+input,
+option {
+  border-radius: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--type-small);
+  text-transform: lowercase;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+select,
+input[type="number"] {
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  background: var(--control);
+}
+
+select:focus-visible,
+input:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+/* Thin monochrome sliders: a hairline track and a square handle. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--line);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 3px;
+  height: 11px;
+  margin-top: -5px;
+  border: 0;
+  background: var(--ink);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--line);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 3px;
+  height: 11px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+}
+
+.meta {
+  color: var(--ink-dim);
+  font-size: var(--type-small);
+  letter-spacing: var(--track);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}

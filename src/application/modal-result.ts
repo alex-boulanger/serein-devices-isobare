@@ -1,5 +1,10 @@
 import {
   MUSICAL_ROLES,
+  ROLE_STYLES,
+  SCENE_LABEL_STYLES,
+  type MusicalRole,
+  type RoleStyle,
+  type SceneLabelStyle,
   type GenerationRecipe,
 } from "../generation/generate";
 
@@ -55,24 +60,26 @@ function isApplyResult(value: unknown): value is Extract<ModalResult, { kind: "a
 
   const recipe = value.recipe;
   if (
-    recipe.engineVersion !== 4 ||
+    recipe.engineVersion !== 6 ||
     !isIntegerInRange(recipe.seed, 0, 0xffff_ffff) ||
     !isRecord(recipe.parameters) ||
     !Array.isArray(recipe.lanes) ||
     recipe.lanes.length < 1 ||
     recipe.lanes.length > 8 ||
+    !isValidSceneLabelStyle(recipe.sceneLabelStyle) ||
     typeof value.overwriteOccupied !== "boolean"
   ) {
     return false;
   }
 
-  const { rootPitchClass, scale, motion, tension, space } = recipe.parameters;
+  const { rootPitchClass, scale, motion, tension, space, drift } = recipe.parameters;
   if (
     !isIntegerInRange(rootPitchClass, 0, 11) ||
     !isRecord(scale) ||
     !isNumberInRange(motion, 0, 1) ||
     !isNumberInRange(tension, 0, 1) ||
-    !isNumberInRange(space, 0, 1)
+    !isNumberInRange(space, 0, 1) ||
+    (drift !== undefined && !isNumberInRange(drift, 0, 1))
   ) {
     return false;
   }
@@ -86,6 +93,7 @@ function isApplyResult(value: unknown): value is Extract<ModalResult, { kind: "a
       laneIds.has(lane.id) ||
       typeof lane.role !== "string" ||
       !MUSICAL_ROLES.includes(lane.role as (typeof MUSICAL_ROLES)[number]) ||
+      !isValidRoleStyle(lane.role as MusicalRole, lane.style) ||
       !isIntegerInRange(lane.octaveOffset, -2, 2) ||
       typeof lane.enabled !== "boolean"
     ) {
@@ -107,6 +115,20 @@ function isApplyResult(value: unknown): value is Extract<ModalResult, { kind: "a
     new Set(scale.intervals).size === scale.intervals.length &&
     scale.intervals.includes(0)
   );
+}
+
+/** Absent is valid; the engine falls back to descriptive Scene names. */
+function isValidSceneLabelStyle(style: unknown): boolean {
+  return style === undefined
+    || (typeof style === "string"
+      && SCENE_LABEL_STYLES.includes(style as SceneLabelStyle));
+}
+
+function isValidRoleStyle(role: MusicalRole, style: unknown): boolean {
+  const styles = ROLE_STYLES[role];
+  return styles === undefined
+    ? style === undefined
+    : typeof style === "string" && styles.includes(style as RoleStyle);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

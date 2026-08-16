@@ -8,7 +8,7 @@ import {
 
 function recipe(seed: number): GenerationRecipe {
   return {
-    engineVersion: 4,
+    engineVersion: 6,
     seed,
     parameters: {
       rootPitchClass: 2,
@@ -40,7 +40,7 @@ describe("matrix orchestration", () => {
       lanes: [
         { id: "pad-a", role: "pad", octaveOffset: 0, enabled: true },
         { id: "drone", role: "drone", octaveOffset: 0, enabled: true },
-        { id: "bass", role: "bass", octaveOffset: 0, enabled: true },
+        { id: "bass", role: "bass", style: "articulated", octaveOffset: 0, enabled: true },
         { id: "arp", role: "arp-source", octaveOffset: 0, enabled: true },
       ],
     });
@@ -77,7 +77,7 @@ describe("matrix orchestration", () => {
     const result = generate({
       ...input,
       lanes: [
-        { id: "bass", role: "bass", octaveOffset: 0, enabled: true },
+        { id: "bass", role: "bass", style: "articulated", octaveOffset: 0, enabled: true },
         { id: "pad", role: "pad", octaveOffset: 0, enabled: true },
         { id: "drone", role: "drone", octaveOffset: 0, enabled: true },
         { id: "arp", role: "arp-source", octaveOffset: 0, enabled: true },

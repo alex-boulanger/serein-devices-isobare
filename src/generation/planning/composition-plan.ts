@@ -1,3 +1,4 @@
+import { resolveCount } from "../macros";
 import { createRandom, deriveSeed, type RandomSource } from "../random";
 import {
   SCENE_KINDS,
@@ -8,15 +9,21 @@ import {
   type PitchHierarchy,
   type SceneKind,
 } from "../types";
+import { createMelodicMotif } from "./melodic-motif";
 
 export const CLIP_LENGTH_BEATS = 32;
 const BEAM_WIDTH = 14;
 
+/**
+ * How many times the shared harmony may move within one Scene Cycle. The floors
+ * are low on purpose: at rest Motion should mean genuine stillness, which is
+ * what gives the middle of the slider somewhere to travel.
+ */
 const PAD_MUTATION_RANGES: Readonly<Record<SceneKind, readonly [number, number]>> = {
-  foundation: [0, 1],
-  development: [1, 2],
-  tension: [2, 4],
-  release: [0, 1],
+  foundation: [0, 2],
+  development: [0, 4],
+  tension: [1, 6],
+  release: [0, 2],
 };
 
 const SCENE_TENSION_OFFSET: Readonly<Record<SceneKind, number>> = {
@@ -33,6 +40,7 @@ interface PathCandidate {
 
 export function createCompositionPlan(recipe: GenerationRecipe): CompositionPlan {
   const hierarchy = createPitchHierarchy(recipe);
+  const transitionAnchors = hierarchy.anchors.slice(0, 3);
   const allowedPitches = createAllowedPitches(recipe, 34, 78);
   const foundation = createInitialVoicing(recipe, hierarchy, allowedPitches);
 
@@ -40,15 +48,55 @@ export function createCompositionPlan(recipe: GenerationRecipe): CompositionPlan
     const random = createRandom(deriveSeed(recipe.seed, `scene:${scene}`));
     const start = sceneIndex === 0
       ? foundation
-      : createSceneVariation(foundation, scene, allowedPitches, random);
-    return createPath(recipe, hierarchy, scene, start, allowedPitches, random);
+      : createSceneVariation(foundation, scene, allowedPitches, transitionAnchors, random);
+    return createPath(
+      recipe, hierarchy, transitionAnchors, scene, start, allowedPitches, random,
+    );
   });
 
   return {
     pitchHierarchy: hierarchy,
-    transitionAnchors: hierarchy.anchors.slice(0, 3),
+    transitionAnchors,
     paths,
+    melodicMotif: createMelodicMotif(recipe, hierarchy),
   };
+}
+
+/** How strongly a Scene's closing voicing is pulled onto Transition Anchors. */
+const TRANSITION_ANCHOR_WEIGHT = 1.2;
+
+/** How many Foundation candidates to keep, and how far below the best one may score. */
+const VOICING_POOL_SIZE = 128;
+const VOICING_QUALITY_WINDOW = 1;
+/** How far a sampled voicing may sit from the best available Tension fit. */
+const VOICING_TENSION_WINDOW = 0.1;
+
+function transitionAnchorCount(
+  pitches: readonly number[],
+  transitionAnchors: readonly number[],
+): number {
+  return pitches.filter(
+    (pitch) => transitionAnchors.includes(((pitch % 12) + 12) % 12),
+  ).length;
+}
+
+/** Keeps only the candidates richest in Transition Anchors, ties intact. */
+function richestInAnchors(
+  candidates: readonly number[][],
+  transitionAnchors: readonly number[],
+): number[][] {
+  let best = -1;
+  let winners: number[][] = [];
+  for (const candidate of candidates) {
+    const count = transitionAnchorCount(candidate, transitionAnchors);
+    if (count > best) {
+      best = count;
+      winners = [candidate];
+    } else if (count === best) {
+      winners.push(candidate);
+    }
+  }
+  return winners;
 }
 
 function createPitchHierarchy(recipe: GenerationRecipe): PitchHierarchy {
@@ -58,23 +106,19 @@ function createPitchHierarchy(recipe: GenerationRecipe): PitchHierarchy {
   );
   const root = rootPitchClass;
   const nonRoot = pitchClasses.filter((pitchClass) => pitchClass !== root);
-  const fifth = nonRoot.reduce(
-    (best, pitchClass) =>
-      circularDistance(pitchClass, (root + 7) % 12) <
-      circularDistance(best, (root + 7) % 12)
-        ? pitchClass
-        : best,
-    nonRoot[0] ?? root,
-  );
-  const remaining = nonRoot.filter((pitchClass) => pitchClass !== fifth);
   const random = createRandom(deriveSeed(recipe.seed, "pitch-hierarchy"));
-  const secondaryAnchor = remaining.length > 0 ? random.pick(remaining) : fifth;
+  // Bass and Drone play anchors and nothing else, so a fixed fifth pinned their
+  // entire pitch content to one world per scale. A fourth or a sixth grounds the
+  // harmony just as firmly and gives the seed somewhere else to go.
+  const pillar = nearestScalePitchClass(nonRoot, root, random.pick(STRONG_INTERVALS));
+  const remaining = nonRoot.filter((pitchClass) => pitchClass !== pillar);
+  const secondaryAnchor = remaining.length > 0 ? random.pick(remaining) : pillar;
   const colors = remaining.filter((pitchClass) => pitchClass !== secondaryAnchor);
   const rare = colors.length > 1 ? [colors[colors.length - 1]!] : [];
 
   return {
     root,
-    anchors: unique([root, fifth, secondaryAnchor]),
+    anchors: unique([root, pillar, secondaryAnchor]),
     colors: colors.filter((pitchClass) => !rare.includes(pitchClass)),
     rare,
   };
@@ -93,8 +137,7 @@ function createInitialVoicing(
   const targetSpan = 8 + recipe.parameters.space * 29;
   const targetTension = 0.04 + recipe.parameters.tension * 0.5;
   const random = createRandom(deriveSeed(recipe.seed, "initial-voicing"));
-  let winner: number[] | undefined;
-  let winningScore = Number.NEGATIVE_INFINITY;
+  const pool: ScoredVoicing[] = [];
 
   for (const bass of voices[0]!) {
     for (const lowMid of voices[1]!) {
@@ -115,35 +158,86 @@ function createInitialVoicing(
             hierarchy.rare.includes(pitchClass),
           ).length;
           const span = high - bass;
-          const score =
+          // Split deliberately. `fit` is how well the voicing answers the
+          // macros; `colour` is which harmonic material it uses. Diversity is
+          // taken from colour alone, because widening the window on fit would
+          // let the seed drift off the Space and Tension targets and blunt the
+          // very controls the artist is holding.
+          const tensionFit = Math.abs(measureTension(candidate) - targetTension);
+          const shapeFit =
+            spacingDeviation(candidate, targetSpacing) * 0.72 +
+            Math.abs(span - targetSpan) * 0.22;
+          const colour =
             (pitchClasses.includes(hierarchy.root) ? 1.2 : -0.6) +
             anchorCount * (0.55 - recipe.parameters.tension * 0.3) +
             colorCount * recipe.parameters.tension * 0.25 +
-            rareCount * recipe.parameters.tension * 0.45 -
-            spacingDeviation(candidate, targetSpacing) * 0.72 -
-            Math.abs(span - targetSpan) * 0.22 -
-            Math.abs(measureTension(candidate) - targetTension) * 8 +
-            random.next() * 0.025;
+            rareCount * recipe.parameters.tension * 0.45;
 
-          if (score > winningScore) {
-            winner = candidate;
-            winningScore = score;
-          }
+          rememberVoicing(
+            pool,
+            candidate,
+            colour - shapeFit - tensionFit * 8,
+            tensionFit,
+          );
         }
       }
     }
   }
 
-  if (winner === undefined) {
+  const best = pool[0];
+  if (best === undefined) {
     throw new Error("Unable to create a scale-valid initial voicing.");
   }
-  return winner;
+
+  // Taking the argmax made the whole Composition Plan very nearly
+  // seed-invariant: four Foundation voicings across two hundred seeds, and
+  // every Scene departs from this one chord. Sampling from the candidates that
+  // score close to the best keeps the quality floor while giving each seed its
+  // own harmonic world. Widening the score jitter instead would only have added
+  // noise to a musical judgement.
+  // Diversity is taken from harmonic colour, register and spacing — never from
+  // how well the voicing answers Tension. That deviation is held to a narrow
+  // band around the best available, so sampling cannot blunt the macro the
+  // artist is holding.
+  const closestFit = Math.min(...pool.map((entry) => entry.fit));
+  const eligible = pool.filter((entry) =>
+    entry.score >= best.score - VOICING_QUALITY_WINDOW
+    && entry.fit <= closestFit + VOICING_TENSION_WINDOW,
+  );
+  return [...random.pick(eligible).pitches];
 }
 
+interface ScoredVoicing {
+  readonly pitches: readonly number[];
+  readonly score: number;
+  readonly fit: number;
+}
+
+/** Keeps the best candidates in descending order, bounded so scoring stays cheap. */
+function rememberVoicing(
+  pool: ScoredVoicing[],
+  pitches: readonly number[],
+  score: number,
+  fit: number,
+): void {
+  if (pool.length === VOICING_POOL_SIZE && score <= pool[pool.length - 1]!.score) {
+    return;
+  }
+  const at = pool.findIndex((entry) => score > entry.score);
+  pool.splice(at < 0 ? pool.length : at, 0, { pitches, score, fit });
+  if (pool.length > VOICING_POOL_SIZE) pool.pop();
+}
+
+/**
+ * A Scene opens on material that gravitates toward the Transition Anchors, so
+ * that whichever Scene the artist launches next meets this one on shared
+ * pitch-class ground rather than at an arbitrary voicing.
+ */
 function createSceneVariation(
   foundation: readonly number[],
   scene: SceneKind,
   allowedPitches: readonly number[],
+  transitionAnchors: readonly number[],
   random: RandomSource,
 ): number[] {
   const candidates = mutateState(foundation, allowedPitches, scene === "tension" ? 2 : 1);
@@ -155,22 +249,26 @@ function createSceneVariation(
   const preferred = candidates.filter(
     (candidate) => candidate[preferredVoice] !== foundation[preferredVoice],
   );
-  return [...random.pick(preferred.length > 0 ? preferred : candidates)];
+  const pool = preferred.length > 0 ? preferred : candidates;
+  return [...random.pick(richestInAnchors(pool, transitionAnchors))];
 }
 
 function createPath(
   recipe: GenerationRecipe,
   hierarchy: PitchHierarchy,
+  transitionAnchors: readonly number[],
   scene: SceneKind,
   start: readonly number[],
   allowedPitches: readonly number[],
   random: RandomSource,
 ): HarmonicPath {
   const [minimum, maximum] = PAD_MUTATION_RANGES[scene];
-  const mutationCount = discreteRangeValue(
+  const mutationCount = resolveCount(
     minimum,
     maximum,
     recipe.parameters.motion,
+    recipe.seed,
+    `path-mutations:${scene}`,
   );
   const times = createMutationTimes(mutationCount, random);
   let beam: PathCandidate[] = [{ states: [[...start]], score: 0 }];
@@ -189,6 +287,7 @@ function createPath(
           scoreTransition(
             recipe,
             hierarchy,
+            transitionAnchors,
             scene,
             candidate.states[candidate.states.length - 1]!,
             state,
@@ -246,6 +345,7 @@ function mutateState(
 function scoreTransition(
   recipe: GenerationRecipe,
   hierarchy: PitchHierarchy,
+  transitionAnchors: readonly number[],
   scene: SceneKind,
   previous: readonly number[],
   candidate: readonly number[],
@@ -276,6 +376,11 @@ function scoreTransition(
   const loopScore = isLast
     ? countCommonTones(start, candidate) * 0.7 - totalMovement(start, candidate) * 0.08
     : 0;
+  // The closing region gravitates toward the Transition Anchors, so the Scene
+  // hands over compatibly to whichever Scene is launched next.
+  const boundaryGravity = isLast
+    ? transitionAnchorCount(candidate, transitionAnchors) * TRANSITION_ANCHOR_WEIGHT
+    : 0;
 
   return (
     commonTones * 0.8 +
@@ -283,7 +388,8 @@ function scoreTransition(
     colorCount * recipe.parameters.tension * 0.12 +
     rareCount * recipe.parameters.tension * 0.24 +
     rootBonus +
-    loopScore -
+    loopScore +
+    boundaryGravity -
     Math.abs(movement - (1 + recipe.parameters.motion * 7)) * 0.34 -
     spacingDeviation(candidate, targetSpacing) * 0.52 -
     Math.abs(measureTension(candidate) - targetTension) * 5.5
@@ -361,6 +467,24 @@ function spacingDeviation(pitches: readonly number[], target: number): number {
   return total / (pitches.length - 1);
 }
 
+/** Degrees stable enough to anchor a world: the fifth, the fourth, the sixth. */
+const STRONG_INTERVALS = [7, 5, 9] as const;
+
+function nearestScalePitchClass(
+  candidates: readonly number[],
+  root: number,
+  interval: number,
+): number {
+  const target = (root + interval) % 12;
+  return candidates.reduce(
+    (best, pitchClass) =>
+      circularDistance(pitchClass, target) < circularDistance(best, target)
+        ? pitchClass
+        : best,
+    candidates[0] ?? root,
+  );
+}
+
 function circularDistance(left: number, right: number): number {
   const distance = Math.abs(left - right);
   return Math.min(distance, 12 - distance);
@@ -372,10 +496,4 @@ function unique(values: readonly number[]): number[] {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
-}
-
-function discreteRangeValue(minimum: number, maximum: number, value: number): number {
-  if (value < 1 / 3) return minimum;
-  if (value > 2 / 3) return maximum;
-  return Math.round((minimum + maximum) / 2);
 }

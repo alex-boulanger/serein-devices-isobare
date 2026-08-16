@@ -7,7 +7,7 @@ import {
 import type { GenerationRecipe, GenerationResult } from "../../src/generation/generate";
 
 const defaultRecipe: GenerationRecipe = {
-  engineVersion: 4,
+  engineVersion: 6,
   seed: 42,
   parameters: {
     rootPitchClass: 0,
@@ -88,10 +88,10 @@ describe("runGenerationWorkflow", () => {
     expect(overwrite).toBe(true);
     expect(created?.lanes).toHaveLength(1);
     expect(created?.lanes[0]?.scenes.map((scene) => scene.name)).toEqual([
-      "Foundation — Pad",
-      "Development — Pad",
-      "Tension — Pad",
-      "Release — Pad",
+      "Pad — Foundation",
+      "Pad — Development",
+      "Pad — Tension",
+      "Pad — Release",
     ]);
   });
 });

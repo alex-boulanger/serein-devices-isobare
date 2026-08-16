@@ -1,4 +1,5 @@
 import { createAllowedPitches } from "./composition-plan";
+import { interpolate, macroUnit } from "../macros";
 import { deriveSeed } from "../random";
 import type {
   BassArticulationFamily,
@@ -24,15 +25,37 @@ export interface OrchestratedLane {
   readonly identity: OrchestralIdentity;
   readonly harmonicPaths: readonly HarmonicPath[];
   readonly profiles: Readonly<Record<SceneKind, SceneProfile>>;
+  /** Beats after the downbeat before this lane may first sound. */
+  readonly downbeatOffset: number;
 }
+
+/**
+ * Lower is more structural. The most structural enabled lane establishes the
+ * Scene on beat zero and the rest enter behind it, so launching a Scene is one
+ * foundation attack followed by the texture assembling, rather than every role
+ * firing at once. CONTEXT.md asks the *combined* structural roles to establish
+ * material at launch, not each role individually, and ADR 0012 already permits
+ * role-specific entrance shapes.
+ */
+const DOWNBEAT_PRIORITY: Readonly<Record<MusicalRole, number>> = {
+  drone: 0,
+  bass: 1,
+  pad: 2,
+  "arp-source": 3,
+  lead: 4,
+};
+
+/** Longest a non-owner may wait, in beats, at the most open Space setting. */
+const MAX_ENTRANCE_DELAY = 3;
 
 const ROLE_ACTIVITY: Readonly<
   Record<MusicalRole, Readonly<Record<SceneKind, number>>>
 > = {
-  bass: { foundation: 1, development: 0.9, tension: 0.75, release: 0.65 },
+  bass: { foundation: 0.7, development: 1, tension: 1, release: 0.55 },
   pad: { foundation: 0.85, development: 1, tension: 0.9, release: 0.65 },
   drone: { foundation: 1, development: 0.75, tension: 0.6, release: 0.85 },
   "arp-source": { foundation: 0.65, development: 0.85, tension: 1, release: 0.55 },
+  lead: { foundation: 0.7, development: 0.9, tension: 1, release: 0.55 },
 };
 
 const IDENTITY_NAMES = [
@@ -49,11 +72,16 @@ export function createOrchestration(
   const familyCount = new Set(enabled.map((lane) => lane.role)).size;
   const familyDensityScale = Math.max(0.7, 1 - (familyCount - 1) * 0.1);
   const roleCounts = new Map<MusicalRole, number>();
+  // Ownership is relative to what is enabled, so a Pad-only matrix still opens
+  // on its Pad rather than waiting for a Drone that is not there.
+  const downbeatOwner = [...enabled].sort(
+    (left, right) => DOWNBEAT_PRIORITY[left.role] - DOWNBEAT_PRIORITY[right.role],
+  )[0];
 
   return enabled.map((lane) => {
     const roleInstance = roleCounts.get(lane.role) ?? 0;
     roleCounts.set(lane.role, roleInstance + 1);
-    const identity = createIdentity(recipe, lane.role, roleInstance);
+    const identity = createIdentity(recipe, lane, roleInstance);
     const profileFor = (scene: SceneKind): SceneProfile => {
       const activity = ROLE_ACTIVITY[lane.role][scene];
       return { scene, activity, densityScale: familyDensityScale * activity };
@@ -71,13 +99,21 @@ export function createOrchestration(
       identity,
       harmonicPaths: createSiblingPaths(recipe, plan.paths, identity),
       profiles,
+      downbeatOffset: lane.id === downbeatOwner?.id ? 0 : entranceDelay(recipe, lane),
     };
   });
 }
 
+/** A quantised, deterministic wait that widens as Space opens the texture. */
+function entranceDelay(recipe: GenerationRecipe, lane: RoleLaneRecipe): number {
+  const longest = interpolate(1.5, MAX_ENTRANCE_DELAY, recipe.parameters.space);
+  const unit = macroUnit(recipe.seed, `downbeat:${lane.id}:${lane.role}`);
+  return Math.round(interpolate(0.5, longest, unit) * 4) / 4;
+}
+
 function createIdentity(
   recipe: GenerationRecipe,
-  role: MusicalRole,
+  lane: RoleLaneRecipe,
   roleInstance: number,
 ): OrchestralIdentity {
   const identityIndex = roleInstance % IDENTITY_NAMES.length;
@@ -86,7 +122,7 @@ function createIdentity(
     registerOffset: REGISTER_OFFSETS[identityIndex]!,
     harmonicRotation: roleInstance,
     stability: STABILITY[identityIndex]!,
-    ...(role === "bass"
+    ...(lane.role === "bass" && lane.style === "articulated"
       ? { articulationFamily: selectBassArticulationFamily(recipe.seed, roleInstance) }
       : {}),
   };

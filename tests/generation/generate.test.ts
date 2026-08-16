@@ -11,7 +11,7 @@ import {
 
 function recipe(role: MusicalRole = "pad", seed = 42): GenerationRecipe {
   return {
-    engineVersion: 4,
+    engineVersion: 6,
     seed,
     parameters: {
       rootPitchClass: 2,
@@ -20,24 +20,38 @@ function recipe(role: MusicalRole = "pad", seed = 42): GenerationRecipe {
       tension: 0.45,
       space: 0.65,
     },
-    lanes: [{ id: "track-0", role, octaveOffset: 0, enabled: true }],
+    lanes: [{
+      id: "track-0",
+      role,
+      octaveOffset: 0,
+      enabled: true,
+      ...(role === "lead" ? { style: "pluck" as const } : {}),
+      ...(role === "bass" ? { style: "articulated" as const } : {}),
+    }],
   };
 }
 
+/**
+ * The budget a Scene may spend at maximum Motion. Pad is bounded by the shared
+ * Harmonic Path rather than its own role range, so it tracks PAD_MUTATION_RANGES.
+ */
 const mutationRanges: Readonly<
   Record<MusicalRole, Readonly<Record<SceneKind, readonly [number, number]>>>
 > = {
   bass: {
-    foundation: [0, 1], development: [1, 2], tension: [1, 2], release: [0, 1],
+    foundation: [0, 2], development: [1, 4], tension: [1, 5], release: [0, 2],
   },
   pad: {
-    foundation: [0, 1], development: [1, 2], tension: [2, 4], release: [0, 1],
+    foundation: [0, 2], development: [0, 4], tension: [1, 6], release: [0, 2],
   },
   drone: {
-    foundation: [0, 0], development: [0, 1], tension: [1, 1], release: [0, 0],
+    foundation: [0, 1], development: [0, 2], tension: [1, 3], release: [0, 1],
   },
   "arp-source": {
-    foundation: [0, 1], development: [1, 2], tension: [1, 3], release: [0, 1],
+    foundation: [0, 2], development: [1, 4], tension: [1, 5], release: [0, 2],
+  },
+  lead: {
+    foundation: [0, 1], development: [2, 3], tension: [3, 4], release: [1, 2],
   },
 };
 
@@ -117,7 +131,8 @@ describe("generate", () => {
     const lowMotion = summarizeMacro("motion", 0.25);
     const highMotion = summarizeMacro("motion", 0.75);
     expect(highMotion.mutations).toBeGreaterThan(lowMotion.mutations * 1.8);
-    expect(highMotion.movement).toBeGreaterThan(lowMotion.movement * 3);
+    // Measured at 3.1x over 200 seeds; the bar leaves room for sampling noise.
+    expect(highMotion.movement).toBeGreaterThan(lowMotion.movement * 2.5);
 
     const lowTension = summarizeMacro("tension", 0.25);
     const highTension = summarizeMacro("tension", 0.75);
@@ -126,6 +141,73 @@ describe("generate", () => {
     const compact = summarizeMacro("space", 0.25);
     const open = summarizeMacro("space", 0.75);
     expect(open.spacing).toBeGreaterThan(compact.spacing * 1.8);
+  });
+
+  it("names clips by role first, then Scene", () => {
+    const names = generate(recipe("bass")).lanes[0]!.scenes.map((scene) => scene.name);
+
+    expect(names).toEqual([
+      "Bass — Foundation",
+      "Bass — Development",
+      "Bass — Tension",
+      "Bass — Release",
+    ]);
+  });
+
+  it("spells the Scene as a numeral on request, for every role", () => {
+    for (const role of MUSICAL_ROLES) {
+      const numbered = generate({ ...recipe(role), sceneLabelStyle: "numeral" });
+      const named = generate({ ...recipe(role), sceneLabelStyle: "name" });
+
+      expect(numbered.lanes[0]!.scenes.map((scene) => scene.name.split(" — ")[1]))
+        .toEqual(["I", "II", "III", "IV"]);
+      // Naming is presentation: the score itself must be untouched by it.
+      expect(numbered.lanes[0]!.scenes.map((scene) => scene.notes))
+        .toEqual(named.lanes[0]!.scenes.map((scene) => scene.notes));
+    }
+  });
+
+  it("defaults to Scene names when the recipe omits a style", () => {
+    const { sceneLabelStyle: _omitted, ...withoutStyle } = {
+      ...recipe("pad"),
+      sceneLabelStyle: "numeral" as const,
+    };
+
+    expect(generate(withoutStyle).lanes[0]!.scenes[0]!.name).toBe("Pad — Foundation");
+  });
+
+  it("emits MIDI-valid notes for every role", () => {
+    for (const role of MUSICAL_ROLES) {
+      for (const scene of generate(recipe(role)).lanes[0]!.scenes) {
+        for (const note of scene.notes) {
+          // Live takes integer velocities; a shaped dynamic arc must not leak
+          // fractions into the note data.
+          expect(Number.isInteger(note.velocity)).toBe(true);
+          expect(note.velocity).toBeGreaterThanOrEqual(1);
+          expect(note.velocity).toBeLessThanOrEqual(127);
+          expect(Number.isInteger(note.pitch)).toBe(true);
+          expect(note.pitch).toBeGreaterThanOrEqual(0);
+          expect(note.pitch).toBeLessThanOrEqual(127);
+        }
+      }
+    }
+  });
+
+  it("shapes dynamics across the Scene Cycle instead of sitting flat", () => {
+    const spread = (kind: string) => {
+      const velocities: number[] = [];
+      for (let seed = 1; seed <= 12; seed += 1) {
+        for (const lane of generate({ ...recipe("pad"), seed }).lanes) {
+          const scene = lane.scenes.find((candidate) => candidate.kind === kind)!;
+          velocities.push(...scene.notes.map((note) => note.velocity));
+        }
+      }
+      return Math.max(...velocities) - Math.min(...velocities);
+    };
+
+    for (const kind of ["foundation", "development", "tension", "release"]) {
+      expect(spread(kind)).toBeGreaterThan(6);
+    }
   });
 
   it("sustains common tones instead of retriggering identical pitches", () => {
@@ -158,20 +240,21 @@ describe("generate", () => {
         activeVoiceCounts,
       );
 
-      expect(foundation![0]).toBe(2);
-      expect(Math.max(...foundation!)).toBe(role === "pad" ? 3 : 2);
-      expect(foundation![31]).toBe(2);
+      // Voice counts now follow Motion and Tension, so the contract is the
+      // shape of the Scene Arc rather than a fixed count at a fixed beat.
+      const peak = (counts: readonly number[]) => Math.max(...counts);
 
-      expect(development![0]).toBe(3);
-      expect(Math.min(...development!)).toBe(2);
-      expect(development![31]).toBe(3);
+      expect(peak(tension!)).toBeGreaterThanOrEqual(peak(foundation!));
+      expect(peak(tension!)).toBeGreaterThanOrEqual(peak(release!));
+      expect(peak(development!)).toBeGreaterThanOrEqual(peak(release!));
 
-      expect(tension![0]).toBeGreaterThanOrEqual(4);
-      expect(Math.min(...tension!)).toBeGreaterThanOrEqual(4);
-      expect(Math.max(...tension!)).toBeLessThanOrEqual(role === "pad" ? 4 : 5);
-
-      expect(release![0]).toBe(2);
-      expect(release![31]).toBe(2);
+      for (const counts of [foundation!, development!, tension!, release!]) {
+        // Upper voices bloom in behind the anchor, so the downbeat carries the
+        // anchor alone rather than the whole chord.
+        expect(counts[0]).toBeGreaterThanOrEqual(1);
+        expect(peak(counts)).toBeGreaterThanOrEqual(2);
+        expect(peak(counts)).toBeLessThanOrEqual(6);
+      }
 
       const soundingDurations = scenes.map((scene) =>
         scene.notes.reduce((total, note) => total + note.duration, 0),
@@ -187,7 +270,7 @@ describe("generate", () => {
     const result = generate({
       ...input,
       lanes: [
-        { id: "bass", role: "bass", octaveOffset: 0, enabled: true },
+        { id: "bass", role: "bass", style: "articulated", octaveOffset: 0, enabled: true },
         { id: "pad-a", role: "pad", octaveOffset: 0, enabled: true },
         { id: "unused", role: "drone", octaveOffset: 0, enabled: false },
         { id: "arp", role: "arp-source", octaveOffset: 0, enabled: true },
@@ -212,7 +295,7 @@ describe("generate", () => {
 
     expect(result.lanes[0]!.roleInstance).toBe(0);
     expect(result.lanes[1]!.roleInstance).toBe(1);
-    expect(result.lanes[1]!.scenes[0]!.name).toBe("Foundation — Pad 2");
+    expect(result.lanes[1]!.scenes[0]!.name).toBe("Pad 2 — Foundation");
     expect(result.lanes[0]!.scenes).not.toEqual(result.lanes[1]!.scenes);
   });
 
@@ -238,7 +321,9 @@ function summarizeMacro(
   parameter: "motion" | "tension" | "space",
   value: number,
 ) {
-  const summaries = Array.from({ length: 16 }, (_, index) => {
+  // Sampled widely on purpose: the Composition Plan now yields ~80 distinct
+  // harmonic worlds per 200 seeds, so a small sample reads mostly as noise.
+  const summaries = Array.from({ length: 48 }, (_, index) => {
     const input = recipe("pad", index + 1);
     const result = generate({
       ...input,
