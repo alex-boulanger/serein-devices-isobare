@@ -29,7 +29,11 @@
   <div class="actions">
     <button type="button" onclick={() => session.cancel()}>cancel</button>
     <button type="button" class="primary" onclick={() => session.apply()}>
-      generate matrix
+      <span>Generate matrix</span>
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M4 10h11" />
+        <path d="m11 6 4 4-4 4" />
+      </svg>
     </button>
   </div>
 </footer>
@@ -40,10 +44,11 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
-    min-height: 48px;
-    padding-top: 12px;
-    margin-top: 12px;
-    border-top: 1px solid var(--line);
+    min-height: 64px;
+    padding: 12px var(--pad);
+    margin: 10px calc(var(--pad) * -1) 0;
+    border-top: 1px solid var(--line-strong);
+    background: var(--cream-raised);
   }
 
   .notices {
@@ -83,27 +88,44 @@
   }
 
   .actions button {
-    height: 26px;
+    height: 34px;
     min-width: 84px;
-    padding: 0 14px;
-    border: 1px solid var(--line);
+    padding: 0 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
     background: transparent;
-    letter-spacing: var(--track);
+    font-weight: 600;
   }
 
   .actions button:hover {
-    border-color: var(--ink);
+    border-color: var(--blue);
+    color: var(--blue);
   }
 
-  /* Monochrome emphasis: the primary action inverts rather than colours. */
   .actions .primary {
-    border-color: var(--ink);
-    background: var(--ink);
-    color: var(--bg);
+    display: flex;
+    min-width: 148px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    border-color: var(--blue);
+    background: var(--blue);
+    color: #fff;
   }
 
   .actions .primary:hover {
-    background: transparent;
-    color: var(--ink);
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .primary svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
   }
 </style>

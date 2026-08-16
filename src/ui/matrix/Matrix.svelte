@@ -87,7 +87,10 @@
 
 <section class="matrix-slice" aria-label="destination matrix">
   <div class="matrix" class:focused={focusedScene !== undefined}>
-    <div class="corner meta">{session.enabledCount} of {session.lanes.length} lanes</div>
+    <div class="corner">
+      <span class="corner-title">Arrangement</span>
+      <span class="meta">{session.enabledCount}/{session.lanes.length} tracks</span>
+    </div>
 
     {#each SCENE_KINDS as kind, index (kind)}
       <button
@@ -172,38 +175,45 @@
     grid-auto-rows: minmax(var(--row-min), 1fr);
     grid-template-columns: var(--control-column) repeat(4, 1fr);
     grid-template-rows: auto;
-    border: 1px solid var(--line);
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-strong);
     background: var(--panel);
   }
 
   .corner {
     display: flex;
-    align-items: center;
-    padding: 0 10px 0 0;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 8px 10px;
+  }
+
+  .corner-title {
+    font-weight: 650;
   }
 
   .scene-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 7px;
+    padding: 7px 9px;
     border: 0;
-    border-left: 1px solid var(--line);
+    border-left: 1px solid var(--line-strong);
     background: transparent;
     letter-spacing: var(--track);
   }
 
   .scene-head:hover {
-    background: var(--control);
+    background: rgba(255, 255, 255, 0.35);
+    color: var(--blue);
   }
 
   .scene-head.active {
-    background: var(--ink);
-    color: var(--bg);
+    background: var(--blue);
+    color: #fff;
   }
 
   .scene-head.active .meta {
-    color: var(--bg);
+    color: #fff;
   }
 
   .scene-head.muted {
@@ -245,7 +255,7 @@
   }
 
   .readout {
-    padding-top: 7px;
+    padding-top: 8px;
     text-transform: none;
     white-space: nowrap;
     overflow: hidden;

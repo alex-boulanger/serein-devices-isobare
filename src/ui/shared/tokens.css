@@ -1,51 +1,37 @@
-/*
- * Isobare's own palette — deliberately not Live's chrome.
- *
- * A cool near-black ground (hue ~198, barely saturated) under a paper-white
- * ink, after the name: fine evening rain, lines of equal pressure. Warmth is
- * never decoration — amber marks an overwrite, coral marks a refusal, and
- * nothing else in the interface carries a hue.
- *
- * Depth runs sunken → bg → panel → control, so the plot wells are the deepest
- * surface and the notes drawn on them are the brightest thing on screen.
- * One ink, two type sizes, hairline rules; hierarchy comes from weight,
- * tracking and opacity. Every pairing below clears WCAG AA for its role.
- */
 :root {
-  --sunken: #0a0d0f; /* plot wells — deepest surface        */
-  --bg: #0f1315; /* modal ground                        */
-  --panel: #151a1d; /* lane control column                 */
-  --control: #262f34; /* inputs, selects, buttons            */
-  --line-soft: #20282c; /* bar and octave rules inside a plot  */
-  --line: #3a474d; /* structural hairlines                */
+  --cream: #d6d2cb;
+  --cream-raised: #e2ded7;
+  --cream-soft: #cbc6bc;
+  --ink: #1a1714;
+  --ink-dim: #4c463e;
+  --blue: #3131fd;
+  --red: #d8462f;
+  --line: #b6ae9d;
+  --line-strong: #5a5247;
 
-  --ink: #e9edec; /* text, and every generated note      */
-  --ink-dim: #93a0a4; /* meta text                           */
+  --bg: var(--cream);
+  --panel: var(--cream-raised);
+  --control: rgba(255, 255, 255, 0.26);
+  --sunken: var(--ink);
+  --line-soft: #443f3a;
+  --warn: var(--red);
+  --error: var(--red);
 
-  --warn: #e0a75e; /* occupied clips, overwrite consent   */
-  --error: #ec8375; /* validation refusal                  */
-
-  /*
-   * One tinted ink per Musical Role, so lanes stay separable where they overlay
-   * in the stacked Scene view. Spaced 51-64 degrees apart for separability and
-   * kept clear of the amber and coral hues, which stay reserved for meaning.
-   * Desaturated on purpose: tinted inks on a cool ground, not a rainbow.
-   */
-  --role-bass: #5fa3db;
-  --role-pad: #a288de;
-  --role-drone: #57bc92;
-  --role-arp-source: #8cbf77;
-  --role-lead: #db8cbe;
+  /* Role tints are confined to the analytical note plot. */
+  --role-bass: #7eafff;
+  --role-pad: #b3a6ff;
+  --role-drone: #9bcfba;
+  --role-arp-source: #d7ca83;
+  --role-lead: #f09c8f;
 
   --type: 12px;
   --type-small: 10px;
-  --track: 0.08em;
+  --track: 0.06em;
+  --pad: 20px;
+  --control-column: 244px;
+  --row-min: 43px;
 
-  --pad: 16px;
-  --control-column: 236px;
-  --row-min: 46px;
-
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -59,14 +45,9 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: var(--type);
   line-height: 1.35;
-}
-
-/* The chrome is lowercase; user-authored track names are left as written. */
-#app {
-  text-transform: lowercase;
 }
 
 h1,
@@ -82,11 +63,10 @@ button,
 select,
 input,
 option {
-  border-radius: 0;
+  border-radius: 3px;
   color: var(--ink);
   font: inherit;
   font-size: var(--type-small);
-  text-transform: lowercase;
 }
 
 button,
@@ -96,22 +76,32 @@ select {
 
 select,
 input[type="number"] {
-  height: 22px;
-  padding: 0 4px;
-  border: 1px solid var(--line);
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
   background: var(--control);
+}
+
+button {
+  transition-duration: 120ms;
+  transition-property: color, background-color, border-color, transform;
+  transition-timing-function: ease-out;
+}
+
+button:active {
+  transform: scale(0.96);
 }
 
 select:focus-visible,
 input:focus-visible,
 button:focus-visible {
-  outline: 1px solid var(--ink);
-  outline-offset: 1px;
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 input[type="checkbox"] {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   margin: 0;
   accent-color: var(--ink);
 }
@@ -127,31 +117,32 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--line);
+  height: 2px;
+  background: var(--line-strong);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 3px;
-  height: 11px;
-  margin-top: -5px;
+  width: 8px;
+  height: 16px;
+  margin-top: -7px;
   border: 0;
-  background: var(--ink);
+  border-radius: 1px;
+  background: var(--blue);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 1px;
-  background: var(--line);
+  height: 2px;
+  background: var(--line-strong);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 3px;
-  height: 11px;
+  width: 8px;
+  height: 16px;
   border: 0;
-  border-radius: 0;
-  background: var(--ink);
+  border-radius: 1px;
+  background: var(--blue);
 }
 
 .meta {
@@ -162,4 +153,11 @@ input[type="range"]::-moz-range-thumb {
 
 .numeric {
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .notes {
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -99,7 +99,7 @@
   }
 
   .notes {
-    transition: opacity 90ms linear;
+    transition: opacity 120ms ease-out;
   }
 
   .dimmed {

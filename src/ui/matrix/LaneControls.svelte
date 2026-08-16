@@ -68,9 +68,9 @@
   .lane {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
     justify-content: center;
-    padding: 6px 10px 6px 0;
+    padding: 2px 10px;
   }
 
   .identity {
@@ -86,11 +86,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     text-transform: none;
+    font-weight: 600;
   }
 
   .occupied {
-    padding: 0 4px;
+    padding: 1px 5px;
     border: 1px solid var(--warn);
+    border-radius: 2px;
     color: var(--warn);
     font-size: var(--type-small);
   }
@@ -107,6 +109,9 @@
 
   select {
     min-width: 0;
+    height: 21px;
+    border-color: var(--line);
+    background: rgba(255, 255, 255, 0.32);
   }
 
   .assignment .numeric {

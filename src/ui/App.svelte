@@ -9,13 +9,15 @@
 </script>
 
 <svelte:head>
-  <meta name="color-scheme" content="dark" />
+  <meta name="color-scheme" content="light" />
 </svelte:head>
 
 <main>
-  <HeaderBar />
-  <MacroSliders />
-  <Matrix />
+  <div class="workspace">
+    <HeaderBar />
+    <MacroSliders />
+    <Matrix />
+  </div>
   <ApplyBar />
 </main>
 
@@ -24,6 +26,13 @@
     display: flex;
     height: 100vh;
     flex-direction: column;
-    padding: var(--pad);
+    padding: var(--pad) var(--pad) 0;
+  }
+
+  .workspace {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
   }
 </style>
