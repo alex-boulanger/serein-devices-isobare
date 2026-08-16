@@ -3,7 +3,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { builtAssetName, changelogEntry, writeVersion } from "../../scripts/release";
+import {
+  builtAssetName,
+  changelogEntry,
+  copyReleaseAssets,
+  writeVersion,
+} from "../../scripts/release";
 
 const CHANGELOG = `# Changelog
 
@@ -53,6 +58,27 @@ describe("builtAssetName", () => {
     // why releases republish the artifact under a clean name.
     expect(builtAssetName("Serein Devices - Isobare", "0.1.0"))
       .toBe("Serein-Devices---Isobare-0.1.0.ablx");
+  });
+
+  it("keeps an already clean product name aligned with the release asset", () => {
+    expect(builtAssetName("Isobare", "0.1.1"))
+      .toBe("Isobare-0.1.1.ablx");
+  });
+});
+
+describe("copyReleaseAssets", () => {
+  it("does not copy an already versioned packager output onto itself", () => {
+    const directory = mkdtempSync(join(tmpdir(), "isobare-assets-"));
+    const versioned = join(directory, "Isobare-0.1.1.ablx");
+    const latest = join(directory, "Isobare.ablx");
+    writeFileSync(versioned, "packaged extension", "utf8");
+
+    try {
+      expect(() => copyReleaseAssets(versioned, versioned, latest)).not.toThrow();
+      expect(readFileSync(latest, "utf8")).toBe("packaged extension");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
 

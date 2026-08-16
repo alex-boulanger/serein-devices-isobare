@@ -170,20 +170,30 @@ function removeStaleArtifacts(): void {
 }
 
 /**
- * The packager names the artifact from the manifest's display name, which turns
- * "Serein Devices - Isobare" into "Serein-Devices---Isobare". Publish it under a
- * clean name instead, plus a constant-named copy so
- * `releases/latest/download/Isobare.ablx` always resolves to the newest build.
+ * Publish the packager's artifact under a clean versioned name, plus a
+ * constant-named copy so `releases/latest/download/Isobare.ablx` always resolves
+ * to the newest build. When the manifest already uses the clean product name,
+ * the packager's output is the versioned asset and needs no first copy.
  */
 function renameAsset(target: string): string {
   const manifest = JSON.parse(readFileSync("manifest.json", "utf8")) as { name: string };
   const built = builtAssetName(manifest.name, target);
   const versioned = `${PRODUCT}-${target}.ablx`;
 
-  copyFileSync(built, versioned);
-  copyFileSync(built, `${PRODUCT}.ablx`);
-  console.log(`  ${built} → ${versioned} (+ ${PRODUCT}.ablx)`);
+  copyReleaseAssets(built, versioned, `${PRODUCT}.ablx`);
+  const versionedStep = built === versioned ? built : `${built} → ${versioned}`;
+  console.log(`  ${versionedStep} (+ ${PRODUCT}.ablx)`);
   return versioned;
+}
+
+/** Copies the packager output without copying an already clean asset onto itself. */
+export function copyReleaseAssets(
+  built: string,
+  versioned: string,
+  latest: string,
+): void {
+  if (built !== versioned) copyFileSync(built, versioned);
+  copyFileSync(built, latest);
 }
 
 /** Mirrors how the packager derives a filename from the manifest display name. */

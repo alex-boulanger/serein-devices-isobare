@@ -10,6 +10,12 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-16
+
+### Changed
+
+- Isobare now identifies Serein Devices as its author in Ableton Live.
+
 ## [0.1.0] - 2026-08-16
 
 First public release. Isobare generates a coordinated matrix of looping MIDI
@@ -45,5 +51,6 @@ material for performing ambient music in Ableton Live's Session View.
   boundaries and the matrix stays in sync.
 - Set Live's Global Scale before before using the extension. Isobare reads Live's project scale, with Scale Mode off, Isobare uses C major.
 
-[Unreleased]: https://github.com/alex-boulanger/serein-devices-isobare/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alex-boulanger/serein-devices-isobare/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/alex-boulanger/serein-devices-isobare/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alex-boulanger/serein-devices-isobare/releases/tag/v0.1.0

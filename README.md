@@ -26,8 +26,13 @@ bun test
 bun run start
 ```
 
-In Live's Session View, right-click an empty clip slot and choose
-**Generate…**. The slot is the upper-left corner of the result.
+`bun run start` requires **Developer Mode** in Live's Extensions settings. To
+test an installed `.ablx` instead, stop the development command, turn Developer
+Mode **off**, and restart Live. While Developer Mode is enabled, Live leaves its
+built-in Extension Host stopped and installed extensions are not activated.
+
+In Live's Session View, right-click an **empty MIDI clip slot** (not an existing
+clip) and choose **Generate…**. The slot is the upper-left corner of the result.
 Choose which consecutive MIDI tracks to include, assign a Musical Role and
 available Style to each, then generate four related eight-bar Scene rows. Each
 dialog starts with a fresh seed, which can also be randomized manually. The first

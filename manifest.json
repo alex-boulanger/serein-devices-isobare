@@ -1,6 +1,6 @@
 {
-  "name": "Serein Devices - Isobare",
-  "author": "Alex",
+  "name": "Isobare",
+  "author": "Serein Devices",
   "entry": "dist/extension.js",
   "version": "0.1.0",
   "minimumApiVersion": "1.0.0"
