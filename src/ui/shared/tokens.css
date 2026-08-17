@@ -32,6 +32,8 @@
   --row-min: 43px;
 
   color-scheme: light;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 * {
@@ -60,26 +62,15 @@ p {
 
 /* Form controls do not inherit casing from #app on their own. */
 button,
-select,
-input,
-option {
+input {
   border-radius: 3px;
   color: var(--ink);
   font: inherit;
   font-size: var(--type-small);
 }
 
-button,
-select {
+button {
   cursor: pointer;
-}
-
-select,
-input[type="number"] {
-  height: 26px;
-  padding: 0 7px;
-  border: 1px solid var(--line-strong);
-  background: var(--control);
 }
 
 button {
@@ -92,18 +83,16 @@ button:active {
   transform: scale(0.96);
 }
 
-select:focus-visible,
 input:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
-input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: var(--ink);
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Thin monochrome sliders: a hairline track and a square handle. */

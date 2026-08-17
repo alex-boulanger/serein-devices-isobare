@@ -6,6 +6,7 @@
     sceneLabel,
   } from "../../generation/generate";
   import { pitchClassName } from "../shared/labels";
+  import SeedInput from "../shared/controls/SeedInput.svelte";
   import { useSession } from "../session/session.svelte";
 
   const session = useSession();
@@ -42,23 +43,11 @@
       {/each}
     </div>
 
-    <label class="seed">
-      <span class="meta control-label">Seed</span>
-      <input
-        class="numeric"
-        type="number"
-        min="0"
-        max="4294967295"
-        step="1"
-        bind:value={session.seed}
-      />
-      <button type="button" aria-label="Randomize seed" title="Randomize seed" onclick={() => session.randomizeSeed()}>
-        <svg viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M15.7 7.3A6 6 0 1 0 16 11" />
-          <path d="M12.8 3.6h3.4V7" />
-        </svg>
-      </button>
-    </label>
+    <SeedInput
+      value={session.seed}
+      onValueChange={(value) => (session.seed = value)}
+      onRandomize={() => session.randomizeSeed()}
+    />
   </div>
 </header>
 
@@ -99,8 +88,7 @@
     padding-top: 3px;
   }
 
-  .labels,
-  .seed {
+  .labels {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -134,33 +122,4 @@
     color: var(--cream);
   }
 
-  .seed input {
-    width: 108px;
-    text-align: right;
-  }
-
-  .seed button {
-    display: grid;
-    width: 26px;
-    height: 26px;
-    place-items: center;
-    padding: 0;
-    border: 1px solid var(--line-strong);
-    background: transparent;
-  }
-
-  .seed button:hover {
-    border-color: var(--blue);
-    color: var(--blue);
-  }
-
-  .seed svg {
-    width: 14px;
-    height: 14px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.5;
-  }
 </style>

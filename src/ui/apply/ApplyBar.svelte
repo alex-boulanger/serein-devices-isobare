@@ -1,5 +1,6 @@
 <script lang="ts">
   import { countLabel } from "../shared/labels";
+  import Toggle from "../shared/controls/Toggle.svelte";
   import { useSession } from "../session/session.svelte";
 
   const session = useSession();
@@ -19,10 +20,13 @@
     {/if}
 
     {#if session.occupiedCount > 0}
-      <label class="overwrite">
-        <input type="checkbox" bind:checked={session.overwriteOccupied} />
-        <span>overwrite {countLabel(session.occupiedCount, "occupied clip")}</span>
-      </label>
+      <Toggle
+        checked={session.overwriteOccupied}
+        label={`Overwrite ${countLabel(session.occupiedCount, "occupied clip")}`}
+        text={`overwrite ${countLabel(session.occupiedCount, "occupied clip")}`}
+        tone="warning"
+        onValueChange={(checked) => (session.overwriteOccupied = checked)}
+      />
     {/if}
   </div>
 
@@ -67,18 +71,6 @@
   .error {
     color: var(--error);
     font-size: var(--type-small);
-  }
-
-  .overwrite {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--warn);
-    cursor: pointer;
-  }
-
-  .overwrite input {
-    accent-color: var(--warn);
   }
 
   .actions {

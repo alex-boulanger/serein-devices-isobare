@@ -4,7 +4,11 @@
     ROLE_NAMES,
     ROLE_STYLE_NAMES,
     type MusicalRole,
+    type RoleStyle,
   } from "../../generation/generate";
+  import CustomSelect from "../shared/controls/CustomSelect.svelte";
+  import Toggle from "../shared/controls/Toggle.svelte";
+  import type { SelectOption } from "../shared/controls/control-model";
   import { octaveLabel, octaveTitle } from "../shared/labels";
   import { stylesFor, useSession, type LaneDraft } from "../session/session.svelte";
 
@@ -14,14 +18,25 @@
   const octaveOffsets = [-2, -1, 0, 1, 2];
   const styles = $derived(stylesFor(lane.role));
   const occupied = $derived(session.occupiedFor(lane.id));
+  const roleOptions: readonly SelectOption[] = MUSICAL_ROLES.map((role) => ({
+    value: role,
+    label: ROLE_NAMES[role],
+  }));
+  const styleOptions = $derived<readonly SelectOption[]>(
+    styles.map((style) => ({ value: style, label: ROLE_STYLE_NAMES[style] })),
+  );
+  const octaveOptions: readonly SelectOption[] = octaveOffsets.map((offset) => ({
+    value: offset,
+    label: octaveLabel(offset),
+  }));
 </script>
 
 <div class="lane" class:excluded={!lane.enabled}>
   <div class="identity">
-    <input
-      type="checkbox"
-      bind:checked={lane.enabled}
-      aria-label={`include ${session.trackName(lane.id)}`}
+    <Toggle
+      checked={lane.enabled}
+      label={`Include ${session.trackName(lane.id)}`}
+      onValueChange={(checked) => (lane.enabled = checked)}
     />
     <span class="track">{session.trackName(lane.id)}</span>
     {#if occupied > 0}
@@ -30,37 +45,33 @@
   </div>
 
   <div class="assignment" class:styled={styles.length > 0}>
-    <select
+    <CustomSelect
       value={lane.role}
+      options={roleOptions}
       disabled={!lane.enabled}
-      aria-label="musical role"
-      onchange={(event) =>
-        session.setRole(lane, event.currentTarget.value as MusicalRole)}
-    >
-      {#each MUSICAL_ROLES as role (role)}
-        <option value={role}>{ROLE_NAMES[role]}</option>
-      {/each}
-    </select>
+      label="Musical role"
+      onValueChange={(value) => session.setRole(lane, value as MusicalRole)}
+    />
 
     {#if styles.length > 0}
-      <select bind:value={lane.style} disabled={!lane.enabled} aria-label="role style">
-        {#each styles as style (style)}
-          <option value={style}>{ROLE_STYLE_NAMES[style]}</option>
-        {/each}
-      </select>
+      <CustomSelect
+        value={lane.style ?? styles[0]!}
+        options={styleOptions}
+        disabled={!lane.enabled}
+        label="Role style"
+        onValueChange={(value) => (lane.style = value as RoleStyle)}
+      />
     {/if}
 
-    <select
-      bind:value={lane.octaveOffset}
+    <CustomSelect
+      value={lane.octaveOffset}
+      options={octaveOptions}
       disabled={!lane.enabled}
-      aria-label="octave offset"
+      label="Octave offset"
       title={octaveTitle(lane.octaveOffset)}
-      class="numeric"
-    >
-      {#each octaveOffsets as offset (offset)}
-        <option value={offset}>{octaveLabel(offset)}</option>
-      {/each}
-    </select>
+      align="center"
+      onValueChange={(value) => (lane.octaveOffset = value as number)}
+    />
   </div>
 </div>
 
@@ -105,17 +116,6 @@
 
   .assignment.styled {
     grid-template-columns: 1fr 1fr 46px;
-  }
-
-  select {
-    min-width: 0;
-    height: 21px;
-    border-color: var(--line);
-    background: rgba(255, 255, 255, 0.32);
-  }
-
-  .assignment .numeric {
-    text-align: center;
   }
 
   .excluded .identity .track,

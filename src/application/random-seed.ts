@@ -2,6 +2,8 @@ export interface RandomSeedSource {
   fill(values: Uint32Array): void;
 }
 
+export const MAX_RANDOM_SEED = 0xffff_ffff;
+
 /**
  * Live's extension host exposes no Web Crypto, so the default source uses it
  * when present and mixes time and entropy otherwise. A generation seed only has

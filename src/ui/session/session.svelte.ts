@@ -1,6 +1,6 @@
 import { getContext, setContext } from "svelte";
 
-import { createRandomSeed } from "../../application/random-seed";
+import { createRandomSeed, MAX_RANDOM_SEED } from "../../application/random-seed";
 import type { DestinationLaneState } from "../../application/modal-result";
 import {
   generate,
@@ -12,8 +12,6 @@ import {
   type SceneLabelStyle,
 } from "../../generation/generate";
 import { closeModal, readDialogInput } from "../live-bridge";
-
-const MAX_SEED = 0xffff_ffff;
 
 export interface LaneDraft {
   id: string;
@@ -165,8 +163,8 @@ export function createSession() {
         error = "include at least one track";
         return;
       }
-      if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
-        error = `seed must be a whole number from 0 to ${MAX_SEED.toLocaleString("en-US")}`;
+      if (!Number.isInteger(seed) || seed < 0 || seed > MAX_RANDOM_SEED) {
+        error = `seed must be a whole number from 0 to ${MAX_RANDOM_SEED.toLocaleString("en-US")}`;
         return;
       }
       if (generation.failure !== undefined) {
